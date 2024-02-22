@@ -1,14 +1,18 @@
+import { useCollection } from "react-firebase-hooks/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { app, database } from "./config/firebase.js";
+
 import { Button, StyleSheet, Text, View, TextInput, FlatList, Alert, TouchableOpacity } from "react-native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { NavigationContainer } from "@react-navigation/native";
+import { DetailsPage } from "./DetailsPage.js";
+
 import { StatusBar } from "expo-status-bar";
 import { useState, useEffect } from "react";
 
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { NavigationContainer } from "@react-navigation/native";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { DetailsPage } from "./DetailsPage.js";
-
 export default function App() {
+  //alert(JSON.stringify(database, null, 4));
+
   const Stack = createNativeStackNavigator();
   return (
     <NavigationContainer>
@@ -23,50 +27,45 @@ export default function App() {
 const Home = ({ navigation, route }) => {
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const [values, loading, error] = useCollection(collection(database, "notes"));
 
-  const [notes, setNotes] = useState([]);
+  const data = values?.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
-      updateList(route.params?.key, route.params?.content);
+      console.log("Hello?");
+      updateNote(route.params);
+
+      //updateList(route.params?.key, route.params?.content);
     });
     return unsubscribe;
-  }, [navigation, route.params]);
+  }, [route.params]);
 
-  function updateList(key, content) {
-    const newList = notes.map((note) => {
-      if (key === note.key) {
-        return { ...note, key: key, content: content };
-      }
-      return note;
+  async function updateNote(note) {
+    await updateDoc(doc(database, "notes", note.id), {
+      title: note.title,
+      text: note.text,
     });
-    setNotes(newList);
   }
 
-  async function saveList() {
+  async function deleteNote(id) {
     try {
-      const jsonValue = JSON.stringify(notes);
-      await AsyncStorage.setItem("@myList", jsonValue);
+      await deleteDoc(doc(database, "notes", id));
     } catch (error) {
-      Alert.alert("Error saving list");
-    }
-  }
-  async function loadList() {
-    try {
-      const jsonValue = await AsyncStorage.getItem("@myList");
-      if (jsonValue != null) {
-        const notesArray = JSON.parse(jsonValue);
-        if (notesArray != null) {
-          setNotes(notesArray);
-        }
-      }
-    } catch (error) {
-      Alert.alert("Error loading list");
+      console.log(error);
     }
   }
 
-  function buttonHandler() {
-    setNotes([...notes, { key: notes.length, title: title, content: text }]);
+  async function buttonHandler() {
+    try {
+      await addDoc(collection(database, "notes"), {
+        key: data.length,
+        title: title,
+        text: text,
+      });
+    } catch (error) {
+      console.log(error.message);
+    }
   }
 
   function goToDetailsPage(item) {
@@ -84,20 +83,19 @@ const Home = ({ navigation, route }) => {
       <View style={styles.notesContainer}>
         <FlatList
           style={styles.listLayout}
-          data={notes}
+          data={data}
           renderItem={(note) => (
             <TouchableOpacity onPress={() => goToDetailsPage(note.item)}>
-              <Text>Title: {note.item.title}</Text>
-              <Text>{note.item.content}</Text>
+              <View>
+                <Text>Title: {note.item.title}</Text>
+                <Text>{note.item.text}</Text>
+                <Button title="Delete note" onPress={() => deleteNote(note.item.id)} />
+              </View>
             </TouchableOpacity>
           )}
         />
       </View>
 
-      <View style={styles.rowContainer}>
-        <Button title="Save data" onPress={saveList} />
-        <Button title="Load data" onPress={loadList} />
-      </View>
       <StatusBar style="auto" />
     </View>
   );

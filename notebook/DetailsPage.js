@@ -1,5 +1,5 @@
 import { View, TextInput, Button, StyleSheet } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const DetailsPage = ({ navigation, route }) => {
   const message = route.params?.message;
@@ -7,7 +7,7 @@ export const DetailsPage = ({ navigation, route }) => {
   const [text, setText] = useState(message.content);
 
   function saveAndGoToHome() {
-    navigation.navigate("Home", { content: text, key: message.key });
+    navigation.navigate("Home", { title: title, text: text, key: message.key, id: message.id });
   }
 
   return (
