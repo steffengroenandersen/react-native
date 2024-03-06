@@ -3,6 +3,7 @@ import { collection, doc, addDoc, updateDoc, deleteDoc } from "firebase/firestor
 import { app, database } from "./config/firebase.js";
 
 import { Button, StyleSheet, Text, View, TextInput, FlatList, Alert, TouchableOpacity } from "react-native";
+
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { DetailsPage } from "./DetailsPage.js";
@@ -11,8 +12,6 @@ import { StatusBar } from "expo-status-bar";
 import { useState, useEffect } from "react";
 
 export default function App() {
-  //alert(JSON.stringify(database, null, 4));
-
   const Stack = createNativeStackNavigator();
   return (
     <NavigationContainer>
@@ -27,25 +26,30 @@ export default function App() {
 const Home = ({ navigation, route }) => {
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const [images, setImages] = useState([]);
+
   const [values, loading, error] = useCollection(collection(database, "notes"));
 
   const data = values?.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
-      console.log("Hello?");
       updateNote(route.params);
-
-      //updateList(route.params?.key, route.params?.content);
     });
     return unsubscribe;
   }, [route.params]);
 
   async function updateNote(note) {
-    await updateDoc(doc(database, "notes", note.id), {
-      title: note.title,
-      text: note.text,
-    });
+    console.log(note);
+    try {
+      await updateDoc(doc(database, "notes", note.id), {
+        title: note.title,
+        text: note.text,
+        images: note.images,
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   async function deleteNote(id) {
@@ -62,14 +66,15 @@ const Home = ({ navigation, route }) => {
         key: data.length,
         title: title,
         text: text,
+        images: images,
       });
     } catch (error) {
       console.log(error.message);
     }
   }
 
-  function goToDetailsPage(item) {
-    navigation.navigate("DetailsPage", { message: item });
+  function goToDetailsPage(note) {
+    navigation.navigate("DetailsPage", { message: note });
   }
 
   return (
