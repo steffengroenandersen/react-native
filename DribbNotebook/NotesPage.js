@@ -31,6 +31,18 @@ export const NotesPage = ({ navigation, route }) => {
     return uuidv4();
   }
 
+  // Download images from firestore
+  async function downloadImages() {
+    const downloadedImages = [];
+
+    for (const image of images) {
+      const url = await getDownloadURL(ref(storage, image)).then((url) => {
+        downloadedImages.push(url);
+      });
+    }
+
+    return downloadedImages;
+  }
   // Get image from local
   async function getImage() {
     const image = await ImagePicker.launchImageLibraryAsync({
@@ -55,19 +67,6 @@ export const NotesPage = ({ navigation, route }) => {
     uploadBytes(storageRef, blob).then(() => {
       console.log("image upload...");
     });
-  }
-
-  // Download images from firestore
-  async function downloadImages() {
-    const downloadedImages = [];
-
-    for (const image of images) {
-      const url = await getDownloadURL(ref(storage, image)).then((url) => {
-        downloadedImages.push(url);
-      });
-    }
-
-    return downloadedImages;
   }
 
   // Return to home
